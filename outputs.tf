@@ -1,14 +1,14 @@
 output "id" {
-  description = "ID of the created example"
-  value       = module.this.enabled ? module.this.id : null
+  description = "ID of the provisioned glue job"
+  value       = module.this.enabled ? aws_glue_job.this[0].id : null
 }
 
-output "example" {
-  description = "Example output"
-  value       = module.this.enabled ? local.example : null
+output "arn" {
+  description = "ARN of the provisioned glue job"
+  value       = module.this.enabled ? aws_glue_job.this[0].arn : null
 }
 
-output "random" {
-  description = "Stable random number for this example"
-  value       = module.this.enabled ? join("", random_integer.example[*].result) : null
+output "log_group_name" {
+  description = "Name of the log group created for the glue job"
+  value       = module.this.enabled ? module.cloudwatch_log_group.log_group_name : null
 }
