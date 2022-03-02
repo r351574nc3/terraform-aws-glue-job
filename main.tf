@@ -3,6 +3,7 @@ locals {
   logging_enabled        = var.logging_enabled
   metrics_enabled        = var.metrics_enabled
   extra_py_files_enabled = length(var.extra_py_files) > 0
+  extra_files_enabled    = length(var.extra_files) > 0
   metrics_arguments = {
     "--enable-metrics" = ""
   }
@@ -11,15 +12,24 @@ locals {
     "--enable-continuous-cloudwatch-log" = "true"
     "--enable-continuous-log-filter"     = "true"
   }
+  spark_arguments = {
+    "--enable-spark-ui"       = true,
+    "--spark-event-logs-path" = var.spark_event_logs_path
+  }
   job_arguments = merge(
     var.default_arguments,
     local.logging_enabled ? local.logging_arguments : {},
     local.metrics_enabled ? local.metrics_arguments : {},
-    local.extra_py_files_enabled ? { "--extra-py-files" = join(",", var.extra_py_files) } : {}
+    local.extra_py_files_enabled ? { "--extra-py-files" = join(",", var.extra_py_files) } : {},
+    local.extra_files_enabled ? { "--extra-py-files" = join(",", var.extra_files) } : {},
+    var.spark_ui_enabled ? local.spark_arguments : {},
+    var.glue_datacatalog_enabled ? { "--enable-glue-datacatalog" = "" } : {},
+    var.s3_parquet_optimized_committer_enabled ? { "--enable-s3-parquet-optimized-committer" = true } : {},
+    var.auto_scaling_enabled ? { "--enable-auto-scaling" = true } : {},
+    var.rename_algorithm_v2_enabled ? { "--enable-rename-algorithm-v2" = true } : {},
+    var.job_bookmark_option != "" ? { "--job-bookmark-option" = var.job_bookmark_option } : {},
+    var.tempdir != "" ? { "--TempDir" = var.tempdir } : {},
   )
-  connection_urls = {
-
-  }
 }
 
 module "cloudwatch_log_group" {
@@ -35,6 +45,8 @@ module "cloudwatch_log_group" {
   enabled = local.logging_enabled
 
   context = module.this.context
+
+  tags = module.this.tags
 }
 
 resource "aws_glue_job" "this" {
