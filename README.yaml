@@ -1,81 +1,10 @@
-########################################################################################################################
-########################################################################################################################
-########################################################################################################################
-#         DELETE ME
-#
-# This is the README configuration for the Example module itself.
-# Delete this (up to and including the line with `---`) and fill in
-# the template below the dashes
-
-# Name of this project
-name: terraform-example-module
-
-# License of this project
-license: "APACHE2"
-
-# Copyrights
-copyrights:
-- name: "Cloud Posse, LLC"
-  url: "https://cloudposse.com"
-  year: "2021"
-
-# Canonical GitHub repo
-github_repo: cloudposse/terraform-example-module
-
-description: |-
-  This is an example project to provide all the scaffolding for a typical well-built Cloud Posse
-  Terraform module for AWS resources. It's a template repository you can
-  use when creating new repositories. This is not a useful module by itself.
-
-quickstart: |-
-  1. Use this repo as a template for a new repo.
-  2. Check out the new repo and create a `git` branch to work on.
-  3. Replace the Terraform code at the root of the repo with the code you want to publish.
-  4. Replace the code in `examples/complete` with Terraform code that will make a good automated test.
-     Please keep `context.tf` and `fixtures.us-east-2.tfvars` in place and change only `name`, leaving
-     `region`, `namespace`, `environment`, and `stage` as is. Provide outputs that will be useful for testing.
-  5. Update `test/src/examples_complete_test.go` to verify the outputs of running `terraform apply` on `examples/complete`.
-  6. Run `make github/init` to update the repo with the current Cloud Posse framework files (e.g. `CODEOWNERS`).
-  7. Run `make pr/auto-format` to format the Terraform code and generate documentation.
-  8. Commit everything to `git` and open your first PR on the new repo.
-
-references:
-- name: "Cloud Posse Documentation"
-  url: "https://docs.cloudposse.com"
-  description: "The Cloud Posse Developer Hub (documentation)"
-- name: "Terraform Standard Module Structure"
-  description: "HashiCorp's standard module structure is a file and directory layout we recommend for reusable modules distributed in separate repositories."
-  url: "https://www.terraform.io/docs/language/modules/develop/structure.html"
-- name: "Terraform Module Requirements"
-  description: "HashiCorp's guidance on all the requirements for publishing a module. Meeting the requirements for publishing a module is extremely easy."
-  url: "https://www.terraform.io/docs/registry/modules/publish.html#requirements"
-- name: "Terraform Version Pinning"
-  description: "The required_version setting can be used to constrain which versions of the Terraform CLI can be used with your configuration"
-  url: "https://www.terraform.io/docs/language/settings/index.html#specifying-a-required-terraform-version"
-
-related:
-- name: "Example App"
-  url: "https://github.com/cloudposse/example-app"
-  description: "Example application for CI/CD demonstrations of Codefresh"
-
-
----
-#         DELETE ME
-#
-# The above is the README configuration for the Example module itself.
-# Delete from here to the top of file and fill in the template below
-########################################################################################################################
-########################################################################################################################
-########################################################################################################################
-
-
 #
 # This is the canonical configuration for the `README.md`
 # Run `make readme` to rebuild the `README.md`
 #
 
 # Name of this project
-name:
+name: terraform-aws-glue-job
 
 # Logo for this project
 #logo: docs/logo.png
@@ -106,17 +35,28 @@ badges:
 
 # List any related terraform modules that this module may be used with or that this module depends on.
 related:
-  - name: "terraform-null-label"
-    description: "Terraform module designed to generate consistent names and tags for resources. Use terraform-null-label to implement a strict naming convention."
-    url: "https://github.com/cloudposse/terraform-null-label"
+  - name: "terraform-aws-glue-connection"
+    description: "Terraform module for provisioning AWS Glue Connections."
+    url: "https://github.com/cloudposse/terraform-aws-glue-connection"
+  - name: "terraform-aws-glue-trigger"
+    description: "Terraform module for provisioning AWS Glue Triggers."
+    url: "https://github.com/cloudposse/terraform-aws-glue-trigger"
+  - name: "terraform-aws-glue-workflow"
+    description: "Terraform module for provisioning AWS Glue Workflows."
+    url: "https://github.com/cloudposse/terraform-aws-glue-workflow"
 
 # List any resources helpful for someone to get started. For example, link to the hashicorp documentation or AWS documentation.
 references:
+  - name: Adding Jobs in AWS Glue
+    description: AWS Documentation for adding Glue Jobs.
+    url: https://docs.aws.amazon.com/glue/latest/dg/add-job.html
+  - name: Special Parameters Used by AWS Glue
+    description: AWS Documentation for glue jobspecial parameters
+    url: https://docs.aws.amazon.com/glue/latest/dg/aws-glue-programming-etl-glue-arguments.html
 
 # Short description of this project
 description: |-
-  Short
-  description
+  A module for provisioning glue jobs. Glue jobs are typically `glueetl` and can be python scripts. This module supports paramters and configurations for glue job execution.
 
 # Introduction to the project
 introduction: |-
@@ -130,24 +70,54 @@ usage: |-
   (which tests and deploys the example on AWS), see [test](test).
 
   ```hcl
-  # Create a standard label resource. See [null-label](https://github.com/cloudposse/terraform-null-label/#terraform-null-label--)
-  module "label" {
-    source  = "cloudposse/label/null"
-    # Cloud Posse recommends pinning every module to a specific version, though usually you want to use the current one
-    # version = "x.x.x"
 
-    namespace = "eg"
-    name      = "example"
+  # Role for executing glue jobs. If there isn't a preferred one, create one here.
+  module "glue_role" {
+    source  = "cloudposse/iam-role/aws"
+    version = "0.15.0"
+
+    policy_description = "Allow Glue FullAccess"
+    role_description   = "IAM role with permissions to perform actions on Glue resources"
+
+    principals = {
+      "Service" : [
+        "glue.amazonaws.com"
+      ]
+    }
+
+    policy_document_count = 0
+
+    managed_policy_arns = [
+      "arn:aws:iam::aws:policy/AmazonS3FullAccess",
+      "arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole",
+    ]
+
+    context = module.this.context
   }
 
-  module "example" {
-    source  = "cloudposse/*****/aws"
-    # Cloud Posse recommends pinning every module to a specific version
-    # version = "x.x.x"
+  module "glue_job" {
+    source  = "cloudposse/glue-job/aws"
+    version = "0.1.0"
 
-    example = "Hello world!"
+    enabled = var.enabled
 
-    context = module.label.this
+    connections            = local.connections
+    default_arguments      = var.default_arguments
+    glue_version           = var.glue_version
+    max_concurrent_runs    = var.max_concurrent_runs
+    max_retries            = var.max_retries
+    number_of_workers      = var.number_of_workers
+    optimal_partition_size = var.optimal_partition_size
+    role_arn               = var.role_arn != "" ? var.role_arn : module.glue_role.arn
+    region                 = var.region
+    script_s3_key          = var.script_s3_key
+    security_configuration = var.security_configuration
+    timeout                = var.timeout
+    worker_type            = var.worker_type
+
+
+    context = module.this.context
+
   }
   ```
 
